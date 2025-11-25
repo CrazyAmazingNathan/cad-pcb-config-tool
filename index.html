@@ -202,8 +202,6 @@
     let port = null;
     let reader = null;
     let writer = null;
-    let readableStreamClosed = null;
-    let writableStreamClosed = null;
     let serialBuffer = "";
     let readLoopRunning = false;
 
@@ -225,11 +223,11 @@
       el("connStatus").classList.toggle("connected", connected);
       el("connStatus").classList.toggle("disconnected", !connected);
 
-      el("btnConnect").disabled   = connected;
+      el("btnConnect").disabled    = connected;
       el("btnDisconnect").disabled = !connected;
-      el("btnGetNet").disabled    = !connected;
-      el("btnSaveNet").disabled   = !connected;
-      el("btnReboot").disabled    = !connected;
+      el("btnGetNet").disabled     = !connected;
+      el("btnSaveNet").disabled    = !connected;
+      el("btnReboot").disabled     = !connected;
     }
 
     async function connectSerial() {
@@ -245,20 +243,19 @@
         await port.open({ baudRate: 115200, dataBits: 8, parity: "none", stopBits: 1 });
         log("Port opened.");
 
-        // Text decoder/encoder streams (recommended pattern)
-        const textDecoder = new TextDecoderStream();
-        readableStreamClosed = port.readable.pipeTo(textDecoder.writable);
-        reader = textDecoder.readable.getReader();
-
-        const textEncoder = new TextEncoderStream();
-        writableStreamClosed = textEncoder.readable.pipeTo(port.writable);
-        writer = textEncoder.writable.getWriter();
-
+        reader = port.readable.getReader();
+        writer = port.writable.getWriter();
         serialBuffer = "";
         readLoopRunning = true;
         setConnectedUI(true);
         log("Serial connected. Starting read loop...");
-        readLoop();   // no await, runs in background
+
+        // Kick the board to send its state once we connect
+        setTimeout(() => {
+          sendJson({ cmd: "GET_NET" }).catch(err => log("Initial GET_NET failed: " + err));
+        }, 500);
+
+        readLoop(); // fire and forget
       } catch (err) {
         console.error(err);
         log("Error opening serial port: " + err);
@@ -274,17 +271,9 @@
           reader.releaseLock();
           reader = null;
         }
-        if (readableStreamClosed) {
-          await readableStreamClosed.catch(() => {});
-          readableStreamClosed = null;
-        }
         if (writer) {
           writer.releaseLock();
           writer = null;
-        }
-        if (writableStreamClosed) {
-          await writableStreamClosed.catch(() => {});
-          writableStreamClosed = null;
         }
         if (port) {
           await port.close().catch(() => {});
@@ -298,16 +287,17 @@
     }
 
     async function readLoop() {
-      while (readLoopRunning && reader) {
+      serialBuffer = "";
+      while (readLoopRunning && port && reader) {
         try {
           const { value, done } = await reader.read();
           if (done) {
-            log("Reader done.");
+            log("Serial read done.");
             break;
           }
           if (value) {
-            // value is already a string, because of TextDecoderStream
-            serialBuffer += value;
+            const text = dec.decode(value);
+            serialBuffer += text;
             let idx;
             while ((idx = serialBuffer.indexOf("\n")) >= 0) {
               const line = serialBuffer.slice(0, idx);
@@ -356,7 +346,6 @@
       }
       el("stateSummary").textContent = stateLines.join(" | ");
 
-      // Populate network form fields
       if (j.ssid !== undefined) el("ssid").value = j.ssid;
       if (j.ip   !== undefined) el("ip").value   = j.ip;
       if (j.gw   !== undefined) el("gw").value   = j.gw;
@@ -364,13 +353,14 @@
     }
 
     async function sendJson(obj) {
-      if (!writer) {
+      if (!port || !writer) {
         alert("Not connected to a board yet.");
         return;
       }
       const txt = JSON.stringify(obj);
       log("=> " + txt);
-      await writer.write(txt + "\n");
+      const bytes = enc.encode(txt + "\r\n"); // CRLF for extra friendliness
+      await writer.write(bytes);
     }
 
     // --- Button handlers ---
@@ -408,7 +398,6 @@
       if (!confirm("Send new network settings to board? It may change its IP.")) return;
 
       await sendJson(payload);
-      // Board will respond with updated JSON; we just wait for it in the log.
     });
 
     el("btnOpenFlasher").addEventListener("click", () => {
