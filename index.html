@@ -587,18 +587,24 @@
         log("✓ Board is responding.", "send");
       }
 
-      // If the board just finished booting, immediately request current settings.
-      // This catches the case where the board was still in setup() when we first
-      // connected and missed our initial HELLO/GET_NET commands.
-      if ((j.type === "BOOT" && j.status === "READY") || j.type === "WIFI_OK" || j.type === "WIFI_FAIL") {
-        log("Board boot complete — fetching current settings…", "warn");
+      // React to board boot events — send HELLO + GET_NET as soon as the board
+      // signals it is ready. This is the primary trigger when the port-open
+      // caused a reset (the common case).
+      //   BOOT/STARTING → board just powered on; WiFi connect hasn't started yet.
+      //                   We can send HELLO now; processSerialDuringBoot() will
+      //                   catch it, set serialClientActive, and queue a response.
+      //   BOOT/READY    → WiFi done, loop() about to start. Best time to GET_NET.
+      //   WIFI_OK / WIFI_FAIL → also signals loop() is starting.
+      if (j.type === "BOOT" || j.type === "WIFI_OK" || j.type === "WIFI_FAIL") {
+        const delay = (j.type === "BOOT" && j.status === "STARTING") ? 200 : 300;
+        log(`Board event [${j.type}${j.status ? '/' + j.status : ''}] — sending HELLO + GET_NET…`, "warn");
         setTimeout(async () => {
           try {
             await sendJson({ cmd: "HELLO" });
-            await new Promise(r => setTimeout(r, 300));
+            await new Promise(r => setTimeout(r, 400));
             await sendJson({ cmd: "GET_NET" });
           } catch(e) { log("Post-boot GET_NET failed: " + e, "error"); }
-        }, 300);
+        }, delay);
       }
 
       const fields = [];
@@ -681,21 +687,18 @@
         setConnectedUI(true);
         hideRebootBanner();
 
-        // Step 1: send HELLO so the firmware activates serialClientActive
-        // Step 2: send GET_NET to fetch current settings
-        // Step 3: start retry loop in case the board is still booting (in setup/WiFi connect)
-        //         and missed our first commands — retries every 8s until board responds
-        setTimeout(async () => {
-          try {
-            await sendJson({ cmd: "HELLO" });
-            await new Promise(r => setTimeout(r, 400));
-            await sendJson({ cmd: "GET_NET" });
-          } catch(e) {
-            log("Initial handshake failed: " + e, "error");
-          }
-        }, 500);
-
-        startRetryLoop();  // keeps retrying until we get any JSON back from the board
+        // Opening the serial port resets the ESP32 via the auto-reset circuit on
+        // the USB-serial chip (CP2102/CH340). The board takes ~15s to boot and
+        // connect to WiFi before loop() starts running.
+        //
+        // Strategy: do NOT send immediately after port-open. Instead:
+        //   1. handleStateJson() watches for {"type":"BOOT","status":"READY"} and
+        //      sends HELLO + GET_NET automatically when it arrives.
+        //   2. The retry loop below fires every 8s as a fallback — this handles
+        //      the case where the board was already running when we connected and
+        //      no reset was triggered (e.g. board was plugged in before page opened).
+        log("⏳ Waiting for board to boot — this takes ~15s on first connect…", "warn");
+        startRetryLoop();  // fallback: catches already-running boards
         readLoop();
       } catch (err) {
         log("Failed to open port: " + err, "error");
