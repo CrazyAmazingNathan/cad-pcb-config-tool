@@ -487,6 +487,8 @@
     let serialBuffer     = "";
     let readLoopRunning  = false;
     let rebootPending    = false;
+    let boardResponded   = false;   // true once we get any valid JSON back
+    let retryInterval    = null;    // handle for the retry timer
 
     const enc = new TextEncoder();
     const dec = new TextDecoder();
@@ -554,7 +556,51 @@
       el("deviceCard").classList.add("visible");
     }
 
+    function stopRetry() {
+      if (retryInterval) { clearInterval(retryInterval); retryInterval = null; }
+    }
+
+    // Keeps re-sending HELLO + GET_NET every 8s until the board responds.
+    // This handles the case where the board is still in setup() (WiFi connecting)
+    // when the page first connects — commands sent during that window are ignored.
+    function startRetryLoop() {
+      stopRetry();
+      boardResponded = false;
+      let attempt = 0;
+      retryInterval = setInterval(async () => {
+        if (boardResponded || !port || !writer) { stopRetry(); return; }
+        attempt++;
+        log(`↻ Board hasn't responded yet — retry #${attempt}…`, "warn");
+        try {
+          await sendJson({ cmd: "HELLO" });
+          await new Promise(r => setTimeout(r, 300));
+          await sendJson({ cmd: "GET_NET" });
+        } catch(e) { log("Retry failed: " + e, "error"); }
+      }, 8000);
+    }
+
     function handleStateJson(j) {
+      // Any valid JSON from the board = it's alive and loop() is running
+      if (!boardResponded) {
+        boardResponded = true;
+        stopRetry();
+        log("✓ Board is responding.", "send");
+      }
+
+      // If the board just finished booting, immediately request current settings.
+      // This catches the case where the board was still in setup() when we first
+      // connected and missed our initial HELLO/GET_NET commands.
+      if ((j.type === "BOOT" && j.status === "READY") || j.type === "WIFI_OK" || j.type === "WIFI_FAIL") {
+        log("Board boot complete — fetching current settings…", "warn");
+        setTimeout(async () => {
+          try {
+            await sendJson({ cmd: "HELLO" });
+            await new Promise(r => setTimeout(r, 300));
+            await sendJson({ cmd: "GET_NET" });
+          } catch(e) { log("Post-boot GET_NET failed: " + e, "error"); }
+        }, 300);
+      }
+
       const fields = [];
 
       // --- NET_STATE response (from GET_NET) ---
@@ -636,20 +682,20 @@
         hideRebootBanner();
 
         // Step 1: send HELLO so the firmware activates serialClientActive
-        // Step 2: after HELLO_ACK, send GET_NET to fetch current settings
+        // Step 2: send GET_NET to fetch current settings
+        // Step 3: start retry loop in case the board is still booting (in setup/WiFi connect)
+        //         and missed our first commands — retries every 8s until board responds
         setTimeout(async () => {
           try {
             await sendJson({ cmd: "HELLO" });
-            // GET_NET fires 400ms later to give the board time to ACK
-            setTimeout(async () => {
-              try { await sendJson({ cmd: "GET_NET" }); }
-              catch(e) { log("GET_NET failed: " + e, "error"); }
-            }, 400);
+            await new Promise(r => setTimeout(r, 400));
+            await sendJson({ cmd: "GET_NET" });
           } catch(e) {
-            log("HELLO failed: " + e, "error");
+            log("Initial handshake failed: " + e, "error");
           }
         }, 500);
 
+        startRetryLoop();  // keeps retrying until we get any JSON back from the board
         readLoop();
       } catch (err) {
         log("Failed to open port: " + err, "error");
@@ -659,6 +705,7 @@
 
     async function disconnectSerial(silent) {
       readLoopRunning = false;
+      stopRetry();
       try {
         if (reader) { await reader.cancel().catch(()=>{}); reader.releaseLock(); reader = null; }
         if (writer) { writer.releaseLock(); writer = null; }
