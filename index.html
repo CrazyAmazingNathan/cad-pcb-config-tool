@@ -2,250 +2,657 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Crazy Amazing LED Controller – Serial Setup</title>
+  <title>Crazy Amazing LED Controller – Setup</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --bg:        #0d0f12;
+      --surface:   #161a20;
+      --surface2:  #1e242d;
+      --border:    #2a3040;
+      --accent:    #00e5ff;
+      --accent2:   #ff4d6d;
+      --text:      #dce4ef;
+      --muted:     #6b7a90;
+      --green:     #00e676;
+      --red:       #ff4d6d;
+      --mono:      "IBM Plex Mono", monospace;
+      --sans:      "IBM Plex Sans", sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      margin: 16px;
-      max-width: 900px;
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 24px 20px 48px;
     }
-    h1, h2, h3 {
-      margin-top: 0.4em;
-      margin-bottom: 0.2em;
+
+    /* ---- HEADER ---- */
+    .header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 20px;
+      margin-bottom: 28px;
     }
-    h1 span.sub {
-      font-size: 0.6em;
-      font-weight: 400;
-      display: block;
-    }
-    label {
-      display: block;
-      margin-top: 12px;
-      margin-bottom: 4px;
-      font-weight: 500;
-    }
-    input, button {
-      font-size: 16px;
-      padding: 8px;
-    }
-    input[type="text"], input[type="password"] {
-      width: 100%;
-      max-width: 350px;
-      box-sizing: border-box;
-    }
-    input[type="number"] {
-      width: 140px;
-      box-sizing: border-box;
-    }
-    .row {
+    .header-top {
       display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
       flex-wrap: wrap;
-      gap: 8px;
-      align-items: center;
+      gap: 12px;
+    }
+    .brand-tag {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      color: var(--accent);
+      text-transform: uppercase;
       margin-bottom: 6px;
     }
-    button {
-      cursor: pointer;
+    h1 {
+      font-size: clamp(20px, 3vw, 28px);
+      font-weight: 600;
+      line-height: 1.2;
+      color: #fff;
     }
-    button[disabled] {
-      opacity: 0.6;
-      cursor: default;
+    h1 .sub {
+      font-size: 0.55em;
+      font-weight: 400;
+      color: var(--muted);
+      display: block;
+      margin-top: 4px;
+      font-family: var(--mono);
+      letter-spacing: 0.04em;
     }
+    .fw-badge {
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 4px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      white-space: nowrap;
+      align-self: flex-start;
+    }
+
+    /* ---- SECTIONS ---- */
     .section {
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      padding: 12px 14px;
-      margin-bottom: 18px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px 20px;
+      margin-bottom: 16px;
     }
     .section-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 8px;
-      margin-bottom: 6px;
+      gap: 10px;
+      margin-bottom: 14px;
     }
+    h2 {
+      font-size: 15px;
+      font-weight: 600;
+      color: #fff;
+      letter-spacing: 0.02em;
+    }
+    .step-label {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--accent);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    /* ---- STATUS BADGE ---- */
     .badge {
-      font-size: 12px;
-      padding: 2px 6px;
-      border-radius: 999px;
-      background: #eee;
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 3px 10px;
+      border-radius: 4px;
+      letter-spacing: 0.08em;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .badge::before {
+      content: '';
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+      flex-shrink: 0;
     }
     .badge.connected {
-      background: #d4f8d4;
-      color: #095c09;
+      background: rgba(0,230,118,0.12);
+      color: var(--green);
+      border: 1px solid rgba(0,230,118,0.3);
     }
     .badge.disconnected {
-      background: #fde2e2;
-      color: #8b1a1a;
+      background: rgba(255,77,109,0.10);
+      color: var(--red);
+      border: 1px solid rgba(255,77,109,0.25);
     }
-    .subtle {
+    .badge.rebooting {
+      background: rgba(255,200,0,0.10);
+      color: #ffc800;
+      border: 1px solid rgba(255,200,0,0.3);
+    }
+
+    /* ---- BUTTONS ---- */
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    button {
+      font-family: var(--sans);
       font-size: 13px;
-      color: #666;
+      font-weight: 500;
+      padding: 8px 14px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text);
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+      white-space: nowrap;
     }
-    #log {
-      font-family: "SF Mono", Menlo, Consolas, monospace;
-      font-size: 12px;
-      background: #111;
-      color: #eee;
-      padding: 8px;
-      border-radius: 4px;
-      height: 180px;
-      overflow-y: auto;
-      white-space: pre-wrap;
+    button:hover:not([disabled]) {
+      background: #252d3a;
+      border-color: #3d4d62;
     }
-    .state-summary {
-      font-size: 14px;
-      line-height: 1.4;
+    button[disabled] { opacity: 0.38; cursor: default; }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #000;
+      border-color: var(--accent);
+      font-weight: 600;
     }
+    .btn-primary:hover:not([disabled]) {
+      background: #33eaff;
+      border-color: #33eaff;
+    }
+    .btn-danger {
+      border-color: rgba(255,77,109,0.4);
+      color: var(--red);
+    }
+    .btn-danger:hover:not([disabled]) {
+      background: rgba(255,77,109,0.12);
+      border-color: var(--red);
+    }
+
+    /* ---- DEVICE STATE CARD ---- */
+    .device-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-top: 12px;
+      display: none;
+    }
+    .device-card.visible { display: block; }
+    .device-card-title {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .device-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 10px;
+    }
+    .device-field {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .device-field-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .device-field-value {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--accent);
+    }
+    .device-field-value.ok   { color: var(--green); }
+    .device-field-value.muted { color: var(--text); }
+
+    /* ---- FORM FIELDS ---- */
     .two-col {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 16px;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 0 20px;
     }
-    .firmware-note {
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      margin-top: 14px;
+      margin-bottom: 5px;
+    }
+    input[type="text"],
+    input[type="password"] {
+      font-family: var(--mono);
       font-size: 13px;
-      color: #444;
+      width: 100%;
+      max-width: 320px;
+      padding: 9px 11px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s;
     }
-    .danger {
-      background: #b00020;
-      color: #fff;
-      border-color: #b00020;
+    input[type="text"]:focus,
+    input[type="password"]:focus {
+      border-color: var(--accent);
+    }
+    input::placeholder { color: var(--muted); }
+
+    .hint {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 10px;
+      line-height: 1.5;
+    }
+
+    /* ---- REBOOT BANNER ---- */
+    .reboot-banner {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255,200,0,0.08);
+      border: 1px solid rgba(255,200,0,0.3);
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-top: 12px;
+      font-size: 13px;
+      color: #ffc800;
+    }
+    .reboot-banner.visible { display: flex; }
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,200,0,0.3);
+      border-top-color: #ffc800;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ---- COMING SOON ---- */
+    .coming-soon {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px;
+      background: var(--surface2);
+      border-radius: 8px;
+      border: 1px dashed var(--border);
+    }
+    .cs-icon {
+      font-size: 28px;
+      flex-shrink: 0;
+    }
+    .cs-text { font-size: 13px; color: var(--muted); line-height: 1.5; }
+    .cs-text strong { color: var(--text); display: block; margin-bottom: 2px; }
+
+    /* ---- LOG ---- */
+    #log {
+      font-family: var(--mono);
+      font-size: 11.5px;
+      background: #080a0d;
+      color: #8fa3bf;
+      padding: 10px 12px;
+      border-radius: 6px;
+      height: 200px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+      border: 1px solid var(--border);
+      line-height: 1.6;
+    }
+    .log-entry-json  { color: #64b5f6; }
+    .log-entry-send  { color: #a5d6a7; }
+    .log-entry-warn  { color: #ffcc80; }
+    .log-entry-error { color: #ef9a9a; }
+    .log-entry-info  { color: #8fa3bf; }
+
+    .log-controls {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 6px;
+    }
+    .log-clear-btn {
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 3px 9px;
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 4px;
+    }
+    .log-clear-btn:hover:not([disabled]) {
+      border-color: var(--muted);
+      background: none;
+      color: var(--text);
     }
   </style>
 </head>
 <body>
-  <h1>
-    LED Controller by Nathan Robb
-    <span class="sub">Crazy Amazing Designs – Serial Setup Utility</span>
-  </h1>
 
-  <div class="section">
-    <div class="section-header">
-      <h2 style="margin:0;">1. Serial Connection</h2>
-      <span id="connStatus" class="badge disconnected">Disconnected</span>
+  <div class="header">
+    <div class="header-top">
+      <div>
+        <div class="brand-tag">Crazy Amazing Designs</div>
+        <h1>
+          LED Controller Setup
+          <span class="sub">Serial Configuration Utility</span>
+        </h1>
+      </div>
+      <div class="fw-badge" id="fwBadge">FW: —</div>
     </div>
-    <p class="subtle">
-      Use Chrome or Edge on desktop. Plug the controller via USB-C, then click <b>Connect</b>.
-    </p>
-    <div class="row">
-      <button id="btnConnect">Connect Board</button>
-      <button id="btnDisconnect" disabled>Disconnect</button>
-      <button id="btnGetNet" disabled>Read Current Settings</button>
-      <button id="btnReboot" class="danger" disabled>Reboot Board</button>
-    </div>
-    <div id="stateSummary" class="state-summary subtle"></div>
   </div>
 
+  <!-- SECTION 1: Connection -->
   <div class="section">
-    <h2>2. Wi-Fi / Network Settings</h2>
-    <p class="subtle">
-      These commands use the board’s serial JSON protocol
-      (<code>{"cmd":"GET_NET"}</code>, <code>{"cmd":"SET_NET"...}</code>).
-      Leave a field blank to keep the current value.
+    <div class="section-header">
+      <div>
+        <div class="step-label">Step 01</div>
+        <h2>Connect Board via USB</h2>
+      </div>
+      <span id="connStatus" class="badge disconnected">Disconnected</span>
+    </div>
+    <p class="hint" style="margin-bottom:12px;">
+      Use <strong style="color:var(--text);">Chrome or Edge</strong> on desktop.
+      Plug the controller in via USB-C, then click <strong style="color:var(--text);">Connect Board</strong>.
+    </p>
+    <div class="btn-row">
+      <button id="btnConnect" class="btn-primary">Connect Board</button>
+      <button id="btnDisconnect" disabled>Disconnect</button>
+      <button id="btnGetNet" disabled>↻ Refresh Settings</button>
+      <button id="btnReboot" class="btn-danger" disabled>⟳ Reboot Board</button>
+    </div>
+
+    <!-- Live device state card -->
+    <div class="device-card" id="deviceCard">
+      <div class="device-card-title">Current Board State</div>
+      <div class="device-grid" id="deviceGrid">
+        <!-- populated by JS -->
+      </div>
+    </div>
+
+    <!-- Reboot banner -->
+    <div class="reboot-banner" id="rebootBanner">
+      <div class="spinner"></div>
+      <span>Board is rebooting and applying new settings. Reconnect once the board comes back online.</span>
+    </div>
+  </div>
+
+  <!-- SECTION 2: Network Settings -->
+  <div class="section">
+    <div class="section-header">
+      <div>
+        <div class="step-label">Step 02</div>
+        <h2>Wi-Fi / Network Settings</h2>
+      </div>
+    </div>
+    <p class="hint">
+      Fields are pre-filled from the board when connected. Edit only what you want to change —
+      blank fields keep their current value.
     </p>
     <div class="two-col">
       <div>
         <label for="ssid">Wi-Fi SSID</label>
-        <input id="ssid" type="text" placeholder="MyNetwork" />
-
+        <input id="ssid" type="text" placeholder="MyNetwork" autocomplete="off" />
         <label for="pwd">Wi-Fi Password</label>
-        <input id="pwd" type="password" placeholder="(leave blank to keep)" />
+        <input id="pwd" type="password" placeholder="(leave blank to keep current)" autocomplete="off" />
       </div>
       <div>
         <label for="ip">Static IP</label>
-        <input id="ip" type="text" placeholder="192.168.1.201" />
-
+        <input id="ip" type="text" placeholder="10.0.134.225" />
         <label for="gw">Gateway</label>
-        <input id="gw" type="text" placeholder="192.168.1.1" />
-
-        <label for="sn">Subnet</label>
-        <input id="sn" type="text" placeholder="255.255.255.0" />
+        <input id="gw" type="text" placeholder="10.0.0.1" />
+        <label for="sn">Subnet Mask</label>
+        <input id="sn" type="text" placeholder="255.255.0.0" />
       </div>
     </div>
-    <div class="row" style="margin-top:10px;">
-      <button id="btnSaveNet" disabled>Save Network Settings to Board</button>
+    <div class="btn-row" style="margin-top:16px;">
+      <button id="btnSaveNet" class="btn-primary" disabled>Save &amp; Apply to Board</button>
     </div>
-    <p class="subtle">
-      When you press <b>Save Network Settings</b>, the board will attempt to connect with the new
-      values. If it fails within ~30&nbsp;seconds, it automatically reverts to the previous
-      configuration (as implemented in your firmware).
+    <p class="hint">
+      The board will reboot after saving. If the new SSID/password fails to connect within ~15s,
+      it automatically reverts to the previous credentials.
     </p>
   </div>
 
+  <!-- SECTION 3: Firmware -->
   <div class="section">
-    <h2>3. Firmware Update (COMING SOON!)</h2>
-    <p class="firmware-note">
-      In the future this section will be used to select the latest Firmware for the board, and upload it.
-      This will also provide New Features
+    <div class="section-header">
+      <div>
+        <div class="step-label">Step 03</div>
+        <h2>Firmware Update</h2>
+      </div>
+      <span class="badge disconnected" style="border-color:rgba(255,200,0,0.3);color:#ffc800;background:rgba(255,200,0,0.08);">Coming Soon</span>
+    </div>
+    <div class="coming-soon">
+      <div class="cs-icon">⚡</div>
+      <div class="cs-text">
+        <strong>Over-the-wire firmware updates are on the way.</strong>
+        This section will let you select and install the latest firmware directly from
+        this page — no additional tools required.
+      </div>
+    </div>
+  </div>
 
+  <!-- Debug Log -->
   <div class="section">
-    <h2>Debug Log</h2>
+    <div class="section-header">
+      <h2>Debug Log</h2>
+      <div class="log-controls">
+        <button class="log-clear-btn" onclick="clearLog()">Clear</button>
+      </div>
+    </div>
     <div id="log"></div>
   </div>
 
   <script>
-    // --- Globals ---
-    let port = null;
-    let reader = null;
-    let writer = null;
-    let serialBuffer = "";
-    let readLoopRunning = false;
+    // =========================================================
+    //  GLOBALS
+    // =========================================================
+    let port             = null;
+    let reader           = null;
+    let writer           = null;
+    let serialBuffer     = "";
+    let readLoopRunning  = false;
+    let rebootPending    = false;
 
     const enc = new TextEncoder();
     const dec = new TextDecoder();
+    const el  = (id) => document.getElementById(id);
 
-    const el = (id) => document.getElementById(id);
-
-    function log(msg) {
-      const logEl = el("log");
-      const now = new Date().toISOString().split("T")[1].replace("Z", "");
-      logEl.textContent += "[" + now + "] " + msg + "\n";
+    // =========================================================
+    //  LOG
+    // =========================================================
+    function log(msg, type = "info") {
+      const logEl  = el("log");
+      const now    = new Date().toISOString().split("T")[1].replace("Z","").slice(0,12);
+      const span   = document.createElement("span");
+      span.className = "log-entry-" + type;
+      span.textContent = "[" + now + "] " + msg + "\n";
+      logEl.appendChild(span);
       logEl.scrollTop = logEl.scrollHeight;
-      console.log(msg);
     }
 
-    function setConnectedUI(connected) {
-      el("connStatus").textContent = connected ? "Connected" : "Disconnected";
-      el("connStatus").classList.toggle("connected", connected);
-      el("connStatus").classList.toggle("disconnected", !connected);
+    function clearLog() { el("log").textContent = ""; }
 
-      el("btnConnect").disabled    = connected;
+    // =========================================================
+    //  UI STATE
+    // =========================================================
+    function setConnectedUI(connected) {
+      const badge = el("connStatus");
+      badge.textContent  = connected ? "Connected" : "Disconnected";
+      badge.className    = "badge " + (connected ? "connected" : "disconnected");
+
+      el("btnConnect").disabled    =  connected;
       el("btnDisconnect").disabled = !connected;
       el("btnGetNet").disabled     = !connected;
       el("btnSaveNet").disabled    = !connected;
       el("btnReboot").disabled     = !connected;
+
+      if (!connected) {
+        el("deviceCard").classList.remove("visible");
+      }
     }
 
+    function showRebootBanner() {
+      el("rebootBanner").classList.add("visible");
+      el("connStatus").textContent = "Rebooting…";
+      el("connStatus").className   = "badge rebooting";
+    }
+
+    function hideRebootBanner() {
+      el("rebootBanner").classList.remove("visible");
+    }
+
+    // =========================================================
+    //  DEVICE STATE CARD
+    // =========================================================
+    function renderDeviceCard(fields) {
+      // fields: array of { label, value, cls }
+      const grid = el("deviceGrid");
+      grid.innerHTML = "";
+      fields.forEach(f => {
+        const div = document.createElement("div");
+        div.className = "device-field";
+        div.innerHTML =
+          `<span class="device-field-label">${f.label}</span>` +
+          `<span class="device-field-value ${f.cls||''}">${f.value}</span>`;
+        grid.appendChild(div);
+      });
+      el("deviceCard").classList.add("visible");
+    }
+
+    function handleStateJson(j) {
+      const fields = [];
+
+      // --- NET_STATE response (from GET_NET) ---
+      if (j.type === "NET_STATE") {
+        if (j.ssid        !== undefined) fields.push({ label:"SSID",        value: j.ssid,        cls:"muted" });
+        if (j.ip          !== undefined) fields.push({ label:"Static IP",   value: j.ip,          cls:"ok" });
+        if (j.gw          !== undefined) fields.push({ label:"Gateway",     value: j.gw,          cls:"muted" });
+        if (j.sn          !== undefined) fields.push({ label:"Subnet",      value: j.sn,          cls:"muted" });
+        if (j.wifiStatus  !== undefined) {
+          const isOk = j.wifiStatus === "CONNECTED";
+          fields.push({ label:"WiFi Status", value: j.wifiStatus, cls: isOk ? "ok" : "" });
+        }
+        if (j.localIP     !== undefined) fields.push({ label:"Actual IP",   value: j.localIP,     cls:"ok" });
+
+        // Pre-fill the form fields
+        if (j.ssid   !== undefined) el("ssid").value = j.ssid;
+        if (j.ip     !== undefined) el("ip").value   = j.ip;
+        if (j.gw     !== undefined) el("gw").value   = j.gw;
+        if (j.sn     !== undefined) el("sn").value   = j.sn;
+      }
+
+      // --- HELLO_ACK (after HELLO handshake) ---
+      if (j.type === "HELLO_ACK") {
+        const fw = j.fw  || "—";
+        const mac= j.mac || "—";
+        el("fwBadge").textContent = "FW: " + fw;
+        fields.push({ label:"Firmware",  value: fw,  cls:"muted" });
+        fields.push({ label:"MAC",       value: mac, cls:"muted" });
+      }
+
+      // --- BOOT message ---
+      if (j.type === "BOOT") {
+        const fw = j.fw || "—";
+        el("fwBadge").textContent = "FW: " + fw;
+        fields.push({ label:"Firmware", value: fw, cls:"muted" });
+        fields.push({ label:"Boot Status", value: j.status || "—", cls: j.status === "READY" ? "ok" : "muted" });
+      }
+
+      // --- WIFI_OK ---
+      if (j.type === "WIFI_OK") {
+        fields.push({ label:"WiFi Status", value: "CONNECTED", cls:"ok" });
+        if (j.ip) fields.push({ label:"IP", value: j.ip, cls:"ok" });
+      }
+
+      // --- WIFI_FAIL ---
+      if (j.type === "WIFI_FAIL") {
+        fields.push({ label:"WiFi Status", value: "FAILED", cls:"" });
+      }
+
+      // --- IP mismatch warning ---
+      if (j.type === "WIFI_IP_MISMATCH") {
+        log(`⚠ IP mismatch — requested ${j.requested}, got ${j.actual}`, "warn");
+      }
+
+      if (fields.length > 0) renderDeviceCard(fields);
+    }
+
+    // =========================================================
+    //  SERIAL CONNECT / DISCONNECT
+    // =========================================================
     async function connectSerial() {
       if (!("serial" in navigator)) {
-        alert("Your browser does not support Web Serial.\nUse Chrome or Edge on desktop.");
+        alert("Web Serial is not supported.\nPlease use Chrome or Edge on desktop.");
         return;
       }
       try {
         log("Requesting serial port...");
         port = await navigator.serial.requestPort();
         log("Port selected.");
-
         await port.open({ baudRate: 115200, dataBits: 8, parity: "none", stopBits: 1 });
-        log("Port opened.");
+        log("Port opened @ 115200 baud.", "info");
 
-        reader = port.readable.getReader();
-        writer = port.writable.getWriter();
-        serialBuffer = "";
-        readLoopRunning = true;
+        reader           = port.readable.getReader();
+        writer           = port.writable.getWriter();
+        serialBuffer     = "";
+        readLoopRunning  = true;
+        rebootPending    = false;
         setConnectedUI(true);
-        log("Serial connected. Starting read loop...");
+        hideRebootBanner();
 
-        // Kick the board to send its state once we connect
-        setTimeout(() => {
-          sendJson({ cmd: "GET_NET" }).catch(err => log("Initial GET_NET failed: " + err));
+        // Step 1: send HELLO so the firmware activates serialClientActive
+        // Step 2: after HELLO_ACK, send GET_NET to fetch current settings
+        setTimeout(async () => {
+          try {
+            await sendJson({ cmd: "HELLO" });
+            // GET_NET fires 400ms later to give the board time to ACK
+            setTimeout(async () => {
+              try { await sendJson({ cmd: "GET_NET" }); }
+              catch(e) { log("GET_NET failed: " + e, "error"); }
+            }, 400);
+          } catch(e) {
+            log("HELLO failed: " + e, "error");
+          }
         }, 500);
 
-        readLoop(); // fire and forget
+        readLoop();
       } catch (err) {
-        console.error(err);
-        log("Error opening serial port: " + err);
+        log("Failed to open port: " + err, "error");
         await disconnectSerial(true);
       }
     }
@@ -253,47 +660,40 @@
     async function disconnectSerial(silent) {
       readLoopRunning = false;
       try {
-        if (reader) {
-          await reader.cancel().catch(() => {});
-          reader.releaseLock();
-          reader = null;
-        }
-        if (writer) {
-          writer.releaseLock();
-          writer = null;
-        }
-        if (port) {
-          await port.close().catch(() => {});
-          port = null;
-        }
-      } catch (err) {
-        if (!silent) log("Error closing port: " + err);
+        if (reader) { await reader.cancel().catch(()=>{}); reader.releaseLock(); reader = null; }
+        if (writer) { writer.releaseLock(); writer = null; }
+        if (port)   { await port.close().catch(()=>{}); port = null; }
+      } catch(err) {
+        if (!silent) log("Close error: " + err, "error");
       }
       setConnectedUI(false);
-      if (!silent) log("Serial port closed.");
+      if (!silent) log("Serial port closed.", "info");
+      if (rebootPending) {
+        showRebootBanner();
+        rebootPending = false;
+      }
     }
 
+    // =========================================================
+    //  READ LOOP
+    // =========================================================
     async function readLoop() {
       serialBuffer = "";
       while (readLoopRunning && port && reader) {
         try {
           const { value, done } = await reader.read();
-          if (done) {
-            log("Serial read done.");
-            break;
-          }
+          if (done) { log("Serial stream ended.", "warn"); break; }
           if (value) {
-            const text = dec.decode(value);
-            serialBuffer += text;
+            serialBuffer += dec.decode(value);
             let idx;
             while ((idx = serialBuffer.indexOf("\n")) >= 0) {
-              const line = serialBuffer.slice(0, idx);
+              const line = serialBuffer.slice(0, idx).trim();
               serialBuffer = serialBuffer.slice(idx + 1);
-              handleSerialLine(line.trim());
+              handleSerialLine(line);
             }
           }
         } catch (err) {
-          log("Serial read error: " + err);
+          if (readLoopRunning) log("Read error: " + err, "error");
           break;
         }
       }
@@ -305,53 +705,30 @@
       if (line[0] === "{") {
         try {
           const obj = JSON.parse(line);
-          log("JSON <= " + line);
+          log("← " + line, "json");
           handleStateJson(obj);
-        } catch (err) {
-          log("JSON parse error: " + err + " (line: " + line + ")");
+        } catch(err) {
+          log("JSON parse error: " + err, "error");
+          log("  raw: " + line, "error");
         }
       } else {
-        log("<- " + line);
+        log("← " + line, "info");
       }
     }
 
-    function handleStateJson(j) {
-      const stateLines = [];
-      if (j.modeText) {
-        stateLines.push("Mode: " + j.modeText);
-      }
-      if (j.sSub !== undefined && j.sUni !== undefined && j.sChan !== undefined) {
-        stateLines.push(
-          "Art-Net: Subnet " + j.sSub + ", Universe " + j.sUni + ", Channel " + j.sChan
-        );
-      }
-      if (j.ssid !== undefined) {
-        stateLines.push("Wi-Fi: " + j.ssid);
-      }
-      if (j.ip !== undefined && j.gw !== undefined && j.sn !== undefined) {
-        stateLines.push("IP: " + j.ip + "  GW: " + j.gw + "  SN: " + j.sn);
-      }
-      el("stateSummary").textContent = stateLines.join(" | ");
-
-      if (j.ssid !== undefined) el("ssid").value = j.ssid;
-      if (j.ip   !== undefined) el("ip").value   = j.ip;
-      if (j.gw   !== undefined) el("gw").value   = j.gw;
-      if (j.sn   !== undefined) el("sn").value   = j.sn;
-    }
-
+    // =========================================================
+    //  SEND
+    // =========================================================
     async function sendJson(obj) {
-      if (!port || !writer) {
-        alert("Not connected to a board yet.");
-        return;
-      }
+      if (!port || !writer) { alert("Not connected to a board."); return; }
       const txt = JSON.stringify(obj);
-      log("=> " + txt);
-      const bytes = enc.encode(txt + "\r\n"); // CRLF for extra friendliness
-      await writer.write(bytes);
+      log("→ " + txt, "send");
+      await writer.write(enc.encode(txt + "\r\n"));
     }
 
-    // --- Button handlers ---
-
+    // =========================================================
+    //  BUTTON HANDLERS
+    // =========================================================
     el("btnConnect").addEventListener("click", () => connectSerial());
     el("btnDisconnect").addEventListener("click", () => disconnectSerial(false));
 
@@ -360,8 +737,11 @@
     });
 
     el("btnReboot").addEventListener("click", async () => {
-      if (!confirm("Send REBOOT command to board?")) return;
+      if (!confirm("Reboot the board now?")) return;
+      rebootPending = true;
       await sendJson({ cmd: "REBOOT" });
+      // Give the board a moment to ACK before we expect disconnect
+      setTimeout(() => disconnectSerial(false), 800);
     });
 
     el("btnSaveNet").addEventListener("click", async () => {
@@ -379,16 +759,15 @@
       if (sn.length   > 0) payload.sn   = sn;
 
       if (Object.keys(payload).length === 1) {
-        alert("No changes to send. Edit at least one field.");
+        alert("No changes to send — edit at least one field first.");
         return;
       }
-      if (!confirm("Send new network settings to board? It may change its IP.")) return;
+      if (!confirm("Save new network settings to board?\nThe board will reboot to apply them.")) return;
 
+      rebootPending = true;
       await sendJson(payload);
-    });
-
-    el("btnOpenFlasher").addEventListener("click", () => {
-      window.open("https://espressif.github.io/esptool-js/", "_blank");
+      // Board reboots on SET_NET — expect disconnect shortly after
+      setTimeout(() => disconnectSerial(false), 1200);
     });
   </script>
 </body>
